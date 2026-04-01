@@ -1,0 +1,15 @@
+{
+  "name": "pi-pimon",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A tiny terminal companion for Pi.",
+  "keywords": ["pi-package", "pi", "extension", "pimon", "terminal-pet"],
+  "license": "MIT",
+  "pi": {
+    "extensions": ["./extensions"]
+  },
+  "peerDependencies": {
+    "@mariozechner/pi-coding-agent": "*",
+    "@mariozechner/pi-tui": "*"
+  }
+}
