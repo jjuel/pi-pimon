@@ -791,23 +791,27 @@ export default function pimonExtension(pi: ExtensionAPI) {
 		};
 	});
 
-	const speakReaction = (pimon: DerivedPimon, quip: string) => {
+	const speakReaction = (pimon: DerivedPimon, quip: string, ctx?: ExtensionContext) => {
 		if (state.ui.muted) return;
-		pi.sendMessage({
-			customType: "pimon-quip",
-			content: "",
-			display: true,
-			details: transcriptDetailsFromPimon(pimon, quip),
-		});
+		if (ctx && !ctx.isIdle()) return;
+		pi.sendMessage(
+			{
+				customType: "pimon-quip",
+				content: "",
+				display: true,
+				details: transcriptDetailsFromPimon(pimon, quip),
+			},
+			{ triggerTurn: false },
+		);
 	};
 
-	const setReaction = (reason: string, speak = true) => {
+	const setReaction = (reason: string, ctx?: ExtensionContext, speak = true) => {
 		const pimon = derivePimon(state);
 		if (!pimon || !state.meta) return;
 		const quip = makeReaction(pimon, reason);
 		state.meta.lastReaction = quip;
 		state.meta.lastReactionAt = Date.now();
-		if (speak) speakReaction(derivePimon(state) ?? pimon, quip);
+		if (speak) speakReaction(derivePimon(state) ?? pimon, quip, ctx);
 	};
 
 	const openPanel = async (ctx: ExtensionContext) => {
@@ -872,8 +876,8 @@ export default function pimonExtension(pi: ExtensionAPI) {
 			default:
 				return;
 		}
-		if (leveled) setReaction("level");
-		else if (reactionReason) setReaction(reactionReason);
+		if (leveled) setReaction("level", ctx);
+		else if (reactionReason) setReaction(reactionReason, ctx);
 		await persist();
 		refreshUi(ctx);
 	});
@@ -882,8 +886,8 @@ export default function pimonExtension(pi: ExtensionAPI) {
 		if (!derivePimon(state)) return;
 		state.progress.turns += 1;
 		const leveled = applyProgress(state, { xp: 2, patience: 1 });
-		if (leveled) setReaction("level");
-		else if (Math.random() < 0.2) setReaction("turn");
+		if (leveled) setReaction("level", ctx);
+		else if (Math.random() < 0.2) setReaction("turn", ctx);
 		await persist();
 		refreshUi(ctx);
 	});
@@ -899,7 +903,7 @@ export default function pimonExtension(pi: ExtensionAPI) {
 				const hadPimon = Boolean(pimon);
 				if (!pimon) {
 					pimon = hatch(state);
-					speakReaction(pimon, state.meta?.lastReaction ?? `${pimon.soul.name} appeared.`);
+					speakReaction(pimon, state.meta?.lastReaction ?? `${pimon.soul.name} appeared.`, ctx);
 					await persist();
 					ctx.ui.notify(`${pimon.soul.name} hatched.`, "success");
 				}
@@ -916,7 +920,7 @@ export default function pimonExtension(pi: ExtensionAPI) {
 						return;
 					}
 					const pimon = hatch(state);
-					speakReaction(pimon, state.meta?.lastReaction ?? `${pimon.soul.name} appeared.`);
+					speakReaction(pimon, state.meta?.lastReaction ?? `${pimon.soul.name} appeared.`, ctx);
 					await persist();
 					refreshUi(ctx);
 					ctx.ui.notify(`${pimon.soul.name} hatched.`, "success");
@@ -928,7 +932,7 @@ export default function pimonExtension(pi: ExtensionAPI) {
 						ctx.ui.notify("No pimon yet. Run /pimon first.", "warning");
 						return;
 					}
-					setReaction("manual");
+					setReaction("manual", ctx);
 					await persist();
 					refreshUi(ctx);
 					ctx.ui.notify("Pimon reacted.", "info");
@@ -940,7 +944,7 @@ export default function pimonExtension(pi: ExtensionAPI) {
 						return;
 					}
 					const leveled = applyProgress(state, { xp: 1, patience: 1, mood: "delighted" });
-					setReaction(leveled ? "level" : "pet");
+					setReaction(leveled ? "level" : "pet", ctx);
 					await persist();
 					refreshUi(ctx);
 					ctx.ui.notify("Pimon seems pleased.", "success");
@@ -961,7 +965,7 @@ export default function pimonExtension(pi: ExtensionAPI) {
 						state.meta.lastReaction = `Very well. I shall answer to ${state.soul.name}.`;
 						state.meta.lastReactionAt = Date.now();
 						const pimon = derivePimon(state);
-						if (pimon) speakReaction(pimon, state.meta.lastReaction);
+						if (pimon) speakReaction(pimon, state.meta.lastReaction, ctx);
 					}
 					await persist();
 					refreshUi(ctx);
